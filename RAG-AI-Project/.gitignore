@@ -1,0 +1,9 @@
+# general things to ignore
+*.egg-info/
+*.egg
+__pycache__/
+build/
+.pytest_cache
+.gradio/
+https/
+.env

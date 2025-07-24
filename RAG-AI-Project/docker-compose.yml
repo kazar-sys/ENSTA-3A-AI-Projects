@@ -1,0 +1,97 @@
+services:
+  rag-app:
+    image: maxenceleguery/enstrag-server:latest
+    build:
+      dockerfile: ./Dockerfile
+    
+    container_name: rag-app
+    command: ["condapython3", "-m", "enstrag", "--local", "--server", "--persist_dir", "/app/vector_db", "--models_path", "/app/weights"]
+    ports:
+      - "8000:8000"
+    networks:
+      - my_network
+    volumes:
+      - /home/student/weights:/app/weights
+      - /home/student/vector_db:/app/vector_db
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+      - ANONYMIZED_TELEMETRY=${ANONYMIZED_TELEMETRY}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  front:
+    image: maxenceleguery/enstrag-front:latest
+    build: 
+      dockerfile: /home/student/enstrag/Dockerfilefront
+    depends_on:
+      - rag-app
+    ports:
+      - "7860:7860"
+    networks:
+      - my_network
+    volumes:
+      - /home/student/vector_db:/app/vector_db
+    environment:
+      - API_URL=http://rag-app:8000
+      - PERSIST_PATH=/app/vector_db
+      - PYTHONUNBUFFERED=1
+      - HASH_PASSWORD=${HASH_PASSWORD}
+    restart: unless-stopped
+
+  flask:
+    image: maxenceleguery/enstrag-front:latest
+    build: 
+      dockerfile: /home/student/enstrag/Dockerfilefront
+    command: ["python3", "front/flask_front.py"]
+    depends_on:
+      - rag-app
+      - front
+    ports:
+      - "5000:5000"
+    networks:
+      - my_network
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-proxy
+    depends_on:
+      - front
+      - flask
+    ports:
+      - "80:80"
+    networks:
+      - my_network
+    volumes:
+      - /home/student/enstrag/enstrag/front/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+
+  restarter:
+    image: docker:cli
+    depends_on:
+      - rag-app
+      - front
+    restart: unless-stopped
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    entrypoint: ["/bin/sh","-c"]
+    command:
+      - |
+        while true; do
+          if [ "$$(date +'%H:%M')" = '00:00' ]; then
+            docker restart rag-app
+          fi
+          sleep 60
+        done
+
+networks:
+  my_network:
+    driver: bridge

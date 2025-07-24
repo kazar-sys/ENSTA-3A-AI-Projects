@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools"] # REQUIRED if [build-system] table is used
+build-backend = "setuptools.build_meta" # If not defined, then legacy behavior can happen.
+
+
+[project]
+name = "enstrag"
+dynamic = ["version"]
+description = "A Python project to create a RAG pipeline for ENSTA courses"
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = ["rag", "ensta"]
+
+authors = [
+  { name = "Maxence Leguéry", email = "maxence.leguery@ensta-paris.fr" },
+  { name = "Antoine Domingues", email = "antoine.domingues@ensta-paris.fr" },
+  { name = "Albin Joyeux", email = "albin.joyeux@ensta-paris.fr" },
+  { name = "Mattéo Denis", email = "matteo.denis@ensta-paris.fr" },
+  { name = "Simon Zarka-Arthus", email = "simon.zarka@ensta-paris.fr" },
+]
+
+dependencies = [
+    "numpy", "langchain", "langchain-huggingface", "unstructured",
+    "pdfminer.six", "pi-heif", "unstructured-inference", "pdf2image",
+    "PyPDF2", "pymupdf", "langchain-chroma", "tiktoken", "umap", "openai",
+    "faiss-gpu-cu12", "gradio", "gradio-pdf", "spacy", "python-dotenv"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-repeat",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.dynamic]
+version = { attr = "enstrag.__version__" }
